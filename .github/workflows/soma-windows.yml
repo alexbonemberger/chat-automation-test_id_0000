@@ -21,8 +21,13 @@ jobs:
           if ($r.resultado -ne 42 -or $r.a -ne 19 -or $r.b -ne 23) { throw 'Soma incorreta' }
           & ./soma-v1/Ativar.ps1 -UmaVez
           if ((Get-FileHash $path).Hash -ne $antes.Hash) { throw 'Recibo regravado' }
+          foreach ($case in @(@('0005',-17,9,-8),@('0006',0,73,73))) {
+            $check = Get-Content "evidencias/soma-v1/$($case[0]).json" -Raw | ConvertFrom-Json
+            if ($check.a -ne $case[1] -or $check.b -ne $case[2] -or $check.resultado -ne $case[3]) { throw "Erro no sinal $($case[0])" }
+            Write-Host "$($case[0])=$($check.resultado) PASS"
+          }
           Get-Content $path
       - uses: actions/upload-artifact@v4
         with:
           name: recibo-soma-windows
-          path: evidencias/soma-v1/0004.json
+          path: evidencias/soma-v1/*.json
