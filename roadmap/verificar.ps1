@@ -25,3 +25,5 @@ try {
     }
     @{pass=$pass;buildExit=$buildCode;cases=$checks;sourceSha256=(Get-FileHash -LiteralPath $Fonte).Hash} | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $Destino 'resultado.json')
 } finally { Remove-Item -LiteralPath $build.FullName -Recurse -Force }
+# O resultado do candidato está no JSON. Falhas do próprio verificador continuam sendo exceções.
+$global:LASTEXITCODE = 0
