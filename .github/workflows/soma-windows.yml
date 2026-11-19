@@ -1,0 +1,28 @@
+name: Executar Soma recebida
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  prova:
+    runs-on: windows-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Materializar fonte, compilar, chamar e verificar retomada
+        shell: pwsh
+        run: |
+          & ./Iniciar.ps1 -UmaVez
+          & ./soma-v1/Ativar.ps1 -UmaVez
+          $path = 'evidencias/soma-v1/0004.json'
+          $antes = Get-FileHash $path
+          $r = Get-Content $path -Raw | ConvertFrom-Json
+          if ($r.resultado -ne 42 -or $r.a -ne 19 -or $r.b -ne 23) { throw 'Soma incorreta' }
+          & ./soma-v1/Ativar.ps1 -UmaVez
+          if ((Get-FileHash $path).Hash -ne $antes.Hash) { throw 'Recibo regravado' }
+          Get-Content $path
+      - uses: actions/upload-artifact@v4
+        with:
+          name: recibo-soma-windows
+          path: evidencias/soma-v1/0004.json
