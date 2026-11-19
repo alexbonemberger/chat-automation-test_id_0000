@@ -1,0 +1,20 @@
+name: Listener Windows
+on: [push, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  transporte:
+    runs-on: windows-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Ler a resposta diretamente da main e conferir o blob publicado
+        shell: pwsh
+        run: |
+          $output = & ./Iniciar.ps1 -UmaVez
+          $output
+          if ($output -notcontains 'CHAT_GIT_OK_0001' -or -not ($output -match 'responses/0001\.txt.*blob=05cc2f78fab160fff130f3e42bc6fb9bd316158f')) {
+            throw 'Resposta inicial divergente'
+          }
