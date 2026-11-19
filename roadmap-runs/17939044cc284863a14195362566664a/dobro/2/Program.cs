@@ -1,0 +1,1 @@
+Console.WriteLine(int.Parse(args[0])*2);
