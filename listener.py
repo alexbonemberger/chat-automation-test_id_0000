@@ -1,4 +1,6 @@
 """Leitor de respostas da main. Cada execução reapresenta o histórico."""
+from pathlib import Path
+from materializar import save
 import argparse
 import re
 import subprocess
@@ -7,7 +9,7 @@ import tempfile
 import time
 
 REMOTE = "https://github.com/alexbonemberger/chat-automation-test_id_0000.git"
-NAME = re.compile(r"responses/[0-9]{4}\.txt")
+NAME = re.compile(r"responses/[0-9]{4}\.(?:txt|md)")
 
 
 def git(directory, *args):
@@ -26,9 +28,18 @@ def poll(directory, remote, seen):
         mode, kind, oid = meta.split()
         if mode != "100644" or kind != "blob" or not NAME.fullmatch(name) or seen.get(name) == oid:
             continue
-        message = git(directory, "cat-file", "blob", oid).decode("utf-8")
+        raw = git(directory, "cat-file", "blob", oid)
+        message = raw.decode("utf-8")
+        target = save(Path(__file__).resolve().parent / "recebidos", name, head, oid, raw)
         print(f"[{name}] commit={head} blob={oid}", flush=True)
         print(message.rstrip("\r\n"), flush=True)
+        print(f"GRAVADO={target}", flush=True)
+        if name == "responses/0003.md":
+            prompt = target.parents[2] / "evidencias" / "0003-prompt.txt"
+            if prompt.is_file():
+                expected = re.search(r"CHAT_DESTINO_[0-9a-f]{32}", prompt.read_text(encoding="utf-8-sig"))
+                matched = expected and message.splitlines()[:1] == [expected.group()] and any(target.glob("codigo/*.cs"))
+                print("CICLO_0003=" + ("PASS" if matched else "DIVERGENTE"), flush=True)
         seen[name] = oid
 
 
@@ -43,7 +54,7 @@ def main():
         while True:
             try:
                 poll(directory, REMOTE, seen)
-            except (RuntimeError, subprocess.TimeoutExpired, UnicodeError) as error:
+            except (RuntimeError, subprocess.TimeoutExpired, UnicodeError, OSError) as error:
                 if args.once:
                     raise
                 print(f"Falha na leitura: {error}", file=sys.stderr, flush=True)

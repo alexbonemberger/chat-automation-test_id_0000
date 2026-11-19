@@ -18,3 +18,11 @@ jobs:
           if ($output -notcontains 'CHAT_GIT_OK_0001' -or -not ($output -match 'responses/0001\.txt.*blob=05cc2f78fab160fff130f3e42bc6fb9bd316158f')) {
             throw 'Resposta inicial divergente'
           }
+          $recibos = @(Get-ChildItem recebidos/0002/*/recibo.json)
+          if ($recibos.Count -ne 1) { throw 'Recibo 0002 ausente ou duplicado' }
+          $dir = $recibos[0].Directory.FullName
+          $recibo = Get-Content $recibos[0] -Raw | ConvertFrom-Json
+          $codigo = Join-Path $dir 'codigo/bloco-01.py'
+          if ((Get-FileHash $codigo).Hash -ne $recibo.arquivos_sha256.'codigo/bloco-01.py') { throw 'Hash de código divergente' }
+          if ((Get-Content $codigo -Raw) -notmatch 'def dobro') { throw 'Código extraído divergente' }
+          Write-Host 'EXTRACAO_0002=PASS'
