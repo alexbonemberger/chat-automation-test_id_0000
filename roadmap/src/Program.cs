@@ -81,8 +81,6 @@ internal static class Program
         async Task<JsonElement> Ui(params string[] cmd) => JsonDocument.Parse((await Run("dotnet",new[]{dll}.Concat(cmd))).Out).RootElement.Clone();
         var list=(await Ui("list-chats")).GetProperty("chats");
         var chat=list.EnumerateArray().Single(x=>x.GetProperty("url").GetString()==route.GetProperty("url").GetString()).GetProperty("name").GetString()!;
-        var permissions=(await Get(Api)).GetProperty("permissions");
-        if (!permissions.GetProperty("push").GetBoolean()) throw new IOException("GitHub CLI precisa de escrita no repositório.");
         var publishedPlan=await Read("roadmap/plans/"+name+".json","main");
         if(publishedPlan==null || !publishedPlan.SequenceEqual(planBytes)) throw new IOException("Publique a mesma versão do plano na main antes de iniciar.");
         var state=Path.Combine(root,"evidencias","roadmap",name);
