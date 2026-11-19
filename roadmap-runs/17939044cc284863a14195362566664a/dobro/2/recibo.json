@@ -1,0 +1,11 @@
+{
+  "pass": true,
+  "step": "dobro",
+  "attempt": 2,
+  "source": "roadmap-runs/17939044cc284863a14195362566664a/dobro/2/Program.cs",
+  "commit": "92b32634a3d80e01c62e65a075a9b2f95d7071df",
+  "sha256": "FC4DE242F3DE74647FB80F758E4B1ECB0B294D6AC7F7C27899B3D011012C98DC",
+  "buildLog": "  Determining projects to restore...\r\n  Restored \u003Cbuild\u003E\\Codigo.csproj (in 0.8 ms).\r\n  Codigo -\u003E \u003Cbuild\u003E\\bin\\Release\\net8.0\\Codigo.dll\r\n\r\nBuild succeeded.\r\n    0 Warning(s)\r\n    0 Error(s)\r\n\r\nTime Elapsed 00:00:00.17\r\n",
+  "tests": "{\r\n  \u0022pass\u0022: true,\r\n  \u0022buildExit\u0022: 0,\r\n  \u0022cases\u0022: [\r\n    {\r\n      \u0022input\u0022: \u00224\u0022,\r\n      \u0022exitCode\u0022: 0,\r\n      \u0022expected\u0022: \u00228\u0022,\r\n      \u0022actual\u0022: \u00228\u0022,\r\n      \u0022pass\u0022: true\r\n    },\r\n    {\r\n      \u0022input\u0022: \u0022-7\u0022,\r\n      \u0022exitCode\u0022: 0,\r\n      \u0022expected\u0022: \u0022-14\u0022,\r\n      \u0022actual\u0022: \u0022-14\u0022,\r\n      \u0022pass\u0022: true\r\n    }\r\n  ],\r\n  \u0022sourceSha256\u0022: \u0022FC4DE242F3DE74647FB80F758E4B1ECB0B294D6AC7F7C27899B3D011012C98DC\u0022\r\n}\r\n",
+  "actions": "https://github.com/alexbonemberger/chat-automation-test_id_0000/actions/runs/44641190658"
+}
