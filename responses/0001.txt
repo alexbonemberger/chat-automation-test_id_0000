@@ -1,0 +1,2 @@
+CHAT_GIT_OK_0001
+Esta resposta saiu do chat, passou pelo Git e chegou ao leitor.
