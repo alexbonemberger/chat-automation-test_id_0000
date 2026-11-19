@@ -1,0 +1,25 @@
+name: Prova integrada roadmap
+on:
+  push:
+    branches: [qa/roadmap-inicial-v1]
+permissions:
+  contents: write
+  actions: write
+jobs:
+  ciclo:
+    runs-on: windows-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: Exercitar controlador e serviços reais com substituto do Edge
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          '{"url":"fixture"}' | Set-Content rota.local.json
+          dotnet build smoke/Ui.csproj -c Release
+          if ($LASTEXITCODE) { throw 'Build fixture' }
+          ./roadmap/Iniciar.ps1 -Runner ./smoke/bin/Release/net8.0/Ui.dll
+          $r = @(Get-ChildItem evidencias/roadmap/inicial -Recurse -Filter recibo.json | ForEach-Object { Get-Content $_ -Raw | ConvertFrom-Json })
+          if ($r.Count -ne 3 -or @($r | Where-Object pass).Count -ne 2) { throw 'Recibos divergentes' }
