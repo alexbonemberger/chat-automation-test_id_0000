@@ -1,0 +1,7 @@
+{
+  "id": "numeros-v1",
+  "steps": [
+    {"id":"dobro","task":"Crie um programa de console C# que leia um inteiro de args[0] e imprima seu dobro.","cases":[{"input":"4","output":"8"},{"input":"-7","output":"-14"}]},
+    {"id":"triplo","task":"Evolua o programa da etapa anterior para imprimir o triplo do inteiro.","cases":[{"input":"5","output":"15"},{"input":"-2","output":"-6"}]}
+  ]
+}

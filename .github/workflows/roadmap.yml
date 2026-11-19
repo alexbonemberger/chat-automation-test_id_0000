@@ -1,0 +1,52 @@
+name: Roadmap CSharp
+run-name: roadmap-${{ inputs.ticket || 'ci' }}
+on:
+  workflow_dispatch:
+    inputs:
+      ticket: {required: true, type: string}
+      commit: {required: true, type: string}
+      plano: {required: true, type: string}
+      etapa: {required: true, type: string}
+      fonte: {required: true, type: string}
+  push:
+    paths: ['roadmap/**', '.github/workflows/roadmap.yml']
+permissions:
+  contents: read
+jobs:
+  validar:
+    runs-on: windows-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+        with: {persist-credentials: false}
+      - name: Compilar controlador
+        run: dotnet build roadmap/src/Roadmap.csproj -c Release
+      - name: Provar compilação, acerto e diagnósticos
+        if: github.event_name == 'push'
+        shell: pwsh
+        run: |
+          foreach ($case in @(@('Console.WriteLine(int.Parse(args[0])*2);',$true,0),@('Console.WriteLine(0);',$false,0),@('int x = ;',$false,1))) {
+            Set-Content prova.cs $case[0]
+            ./roadmap/verificar.ps1 prova.cs roadmap/plans/inicial.json dobro saida
+            $r = Get-Content saida/resultado.json -Raw | ConvertFrom-Json
+            if ($r.pass -ne $case[1] -or ([int]($r.buildExit -ne 0)) -ne $case[2]) { throw 'Validação divergente' }
+          }
+      - uses: actions/checkout@v4
+        if: github.event_name == 'workflow_dispatch'
+        with:
+          ref: ${{ inputs.commit }}
+          path: candidato
+          persist-credentials: false
+      - name: Testar candidato
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        env:
+          FONTE: ${{ inputs.fonte }}
+          PLANO: ${{ inputs.plano }}
+          ETAPA: ${{ inputs.etapa }}
+        run: |
+          if ($env:FONTE -cnotmatch '^roadmap-runs/[a-z0-9-]+/[a-z0-9-]+/[1-3]/Program\.cs$' -or $env:PLANO -cnotmatch '^[a-z0-9-]+$') { throw 'Caminho inválido' }
+          ./roadmap/verificar.ps1 "candidato/$env:FONTE" "candidato/roadmap/plans/$env:PLANO.json" $env:ETAPA saida
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'workflow_dispatch' && always()
+        with: {name: resultado, path: saida/}
