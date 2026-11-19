@@ -1,0 +1,11 @@
+{
+  "pass": false,
+  "step": "dobro",
+  "attempt": 1,
+  "source": "roadmap-runs/17939044cc284863a14195362566664a/dobro/1/Program.cs",
+  "commit": "b7098cf2cb1e5208db3d4db1227fb8a40b069178",
+  "sha256": "50961D2EC2FE15F857908A5C61ABCE20468B9E4E66ADFB21645F18CA988A434E",
+  "buildLog": "  Determining projects to restore...\r\n  Restored \u003Cbuild\u003E\\Codigo.csproj (in 5 ms).\r\n\u003Cbuild\u003E\\Program.cs(1,9): error CS1525: Invalid expression term \u0027;\u0027 [\u003Cbuild\u003E\\Codigo.csproj]\r\n\r\nBuild FAILED.\r\n\r\n\u003Cbuild\u003E\\Program.cs(1,9): error CS1525: Invalid expression term \u0027;\u0027 [\u003Cbuild\u003E\\Codigo.csproj]\r\n    0 Warning(s)\r\n    1 Error(s)\r\n\r\nTime Elapsed 00:00:00.18\r\n",
+  "tests": "",
+  "actions": null
+}
