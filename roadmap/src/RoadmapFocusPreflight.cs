@@ -48,137 +48,178 @@ internal static class RoadmapFocusPreflight
     private static bool IsVerifiedOpen(RoadmapUiReply r) =>
         r.Ok && r.Status == "OPENED_VERIFIED";
 
+    private static bool MissingVisible(RoadmapUiReply r) =>
+        r.Reason == "InvalidOperationException" &&
+        r.Detail.StartsWith("RECOVER_VISIBLE_TAB_MISSING:", StringComparison.Ordinal);
+    private static bool Recovered(RoadmapUiReply r) =>
+        r.Ok && r.Status == "RECOVERED_EXISTING_TAB";
+
     public static async Task EnsureAsync(string chat,
         Func<string[], Task<RoadmapUiReply>> ui,
         Func<TimeSpan, Task> delay,
         Action<Observation> journal)
     {
         var opened = false;
-        const int maximumFocusAttempts = 4;
+        const int maximumFocusAttempts = 5;
+
+        async Task<RoadmapUiReply> Observe(string operation, int attempt, params string[] args)
+        {
+            var reply = await ui(args);
+            journal(new Observation(attempt, operation, reply.ExitCode,
+                reply.Status, reply.Reason, reply.Detail));
+            return reply;
+        }
+
+        // Reutiliza a janela ja aberta, inclusive quando open-chat abriu o Edge
+        // mas o ACK perdeu a confirmacao. Nao abre, seleciona ou envia nada.
+        async Task<RoadmapUiReply> RecoverExisting(int attempt)
+        {
+            RoadmapUiReply last = new(1, "BLOCKED", "UNKNOWN", "no attempt");
+            for (var probe = 0; probe < 3; probe++)
+            {
+                last = await Observe("recover-existing-chat", attempt,
+                    "recover-existing-chat", "--chat", chat);
+                if (Recovered(last) || !MissingVisible(last)) return last;
+                if (probe < 2) await delay(TimeSpan.FromMilliseconds(500));
+            }
+            return last;
+        }
+
         for (var attempt = 1; attempt <= maximumFocusAttempts; attempt++)
         {
-            var focus = await ui(["focus-chat", "--chat", chat]);
-            journal(new Observation(attempt, "focus-chat", focus.ExitCode,
-                focus.Status, focus.Reason, focus.Detail));
+            var focus = await Observe("focus-chat", attempt,
+                "focus-chat", "--chat", chat);
             if (IsVerifiedFocus(focus)) return;
 
-            if (IsMissing(focus) && !opened)
+            if (IsMissing(focus))
             {
-                opened = true;
-                // Nova janela permite recuperar HWND/RuntimeId efêmeros. Não
-                // seleciona cópia antiga ou outra guia por URL.
-                var open = await ui(["open-chat", "--chat", chat,
-                    "--mode", "new-window"]);
-                journal(new Observation(attempt, "open-chat", open.ExitCode,
-                    open.Status, open.Reason, open.Detail));
-                if (!IsVerifiedOpen(open))
+                var existing = await RecoverExisting(attempt);
+                if (Recovered(existing))
+                {
+                    await delay(TimeSpan.FromMilliseconds(350));
+                    continue; // Ainda exige confirmar novamente focus-chat.
+                }
+                if (!MissingVisible(existing))
                     throw new InvalidOperationException(
-                        "FOCUS_OPEN_UNVERIFIED: nenhuma nova abertura ou envio autorizado.");
-                await delay(TimeSpan.FromMilliseconds(850));
-                continue;
-            }
-            if (IsChanged(focus) && attempt < maximumFocusAttempts)
-            {
-                // Reobserva somente o mesmo chat/pin; nunca faz open-chat,
-                // rebind, escolha por indice ou envio nesta recuperação.
-                await delay(TimeSpan.FromMilliseconds(650));
-                continue;
+                        "FOCUS_EXISTING_UNVERIFIED: " + existing.Reason +
+                        ": " + existing.Detail);
+
+                if (opened)
+                    throw new InvalidOperationException(
+                        "FOCUS_REOPEN_FAILED: abertura anterior nao produziu " +
+                        "uma guia unica comprovada; nenhuma segunda janela sera aberta.");
+
+                opened = true;
+                var open = await Observe("open-chat", attempt,
+                    "open-chat", "--chat", chat, "--mode", "new-window");
+                if (IsVerifiedOpen(open))
+                {
+                    await delay(TimeSpan.FromMilliseconds(600));
+                    continue;
+                }
+                // Se a UIA abriu a janela mas perdeu o ACK, somente reconcilia
+                // uma guia ativa unica e comprovada. NUNCA abre de novo.
+                var postOpen = await RecoverExisting(attempt);
+                if (Recovered(postOpen))
+                {
+                    await delay(TimeSpan.FromMilliseconds(350));
+                    continue;
+                }
+                throw new InvalidOperationException(
+                    "FOCUS_OPEN_UNVERIFIED: open=" + open.Status + "/" +
+                    open.Reason + ": " + open.Detail +
+                    "; recover=" + postOpen.Status + "/" +
+                    postOpen.Reason + ": " + postOpen.Detail);
             }
 
-            var category = IsChanged(focus)
-                ? "FOCUS_TARGET_TAB_UNSTABLE"
-                : "FOCUS_PREFLIGHT_BLOCKED";
+            if (IsChanged(focus) && attempt < maximumFocusAttempts)
+            {
+                await delay(TimeSpan.FromMilliseconds(500));
+                continue;
+            }
             throw new InvalidOperationException(
-                category + ": " + focus.Reason + ": " + focus.Detail);
+                (IsChanged(focus) ? "FOCUS_TARGET_TAB_UNSTABLE" : "FOCUS_PREFLIGHT_BLOCKED")
+                + ": " + focus.Reason + ": " + focus.Detail);
         }
         throw new InvalidOperationException(
-            "FOCUS_PREFLIGHT_RETRY_EXHAUSTED: nenhum envio autorizado.");
+            "FOCUS_PREFLIGHT_RETRY_EXHAUSTED: nao autorizado enviar mensagem.");
     }
 
     public static async Task SelfTestAsync()
     {
-        static RoadmapUiReply FocusOk() =>
-            new(0, "FOCUSED_EXACT_URL", "NONE", "");
-        static RoadmapUiReply Changed() =>
-            new(2, "BLOCKED", "InvalidOperationException",
-                "TARGET_TAB_CHANGED: a URL/identidade da guia não confirmou após o foco.");
-        static RoadmapUiReply Closed() =>
-            new(2, "BLOCKED", "InvalidOperationException",
-                "TARGET_WINDOW_CLOSED: janela original não existe mais.");
-        static RoadmapUiReply PinExpired() =>
-            new(2, "BLOCKED", "InvalidOperationException",
-                "PINNED_TAB_NOT_FOUND: guia original ausente. Outra cópia não será escolhida.");
-        static RoadmapUiReply OpenOk() =>
-            new(0, "OPENED_VERIFIED", "NONE", "");
-        async Task<(int focuses, int opens, List<Observation> events, bool failed)> RunScenario(
-            RoadmapUiReply[] focusReplies, RoadmapUiReply[] openReplies)
+        static RoadmapUiReply FocusOk() => new(0,"FOCUSED_EXACT_URL","NONE","");
+        static RoadmapUiReply Closed() => new(2,"BLOCKED","InvalidOperationException",
+            "TARGET_WINDOW_CLOSED: janela fechada");
+        static RoadmapUiReply Expired() => new(2,"BLOCKED","InvalidOperationException",
+            "PINNED_TAB_NOT_FOUND: guia original ausente");
+        static RoadmapUiReply Changed() => new(2,"BLOCKED","InvalidOperationException",
+            "TARGET_TAB_CHANGED: guia instavel");
+        static RoadmapUiReply Missing() => new(2,"BLOCKED","InvalidOperationException",
+            "RECOVER_VISIBLE_TAB_MISSING: nenhuma guia ativa");
+        static RoadmapUiReply Ambiguous() => new(2,"BLOCKED","InvalidOperationException",
+            "RECOVER_VISIBLE_TAB_AMBIGUOUS: multiplas janelas");
+        static RoadmapUiReply RecoverOk() => new(0,"RECOVERED_EXISTING_TAB","NONE","");
+        static RoadmapUiReply OpenOk() => new(0,"OPENED_VERIFIED","NONE","");
+        static RoadmapUiReply OpenPartial() => new(2,"BLOCKED","InvalidOperationException",
+            "OPEN_COMPOSER_NOT_READY: janela abriu, editor nao confirmou");
+        async Task<(bool pass,int focus,int recover,int open,List<Observation> log)> Scenario(
+            RoadmapUiReply[] focuses,RoadmapUiReply[] recoveries,RoadmapUiReply[] opens)
         {
-            var focuses = 0;
-            var opens = 0;
-            var observations = new List<Observation>();
-            var failed = false;
+            int fc=0, rc=0,oc=0;
+            var events = new List<Observation>();
+            bool pass=true;
             try
             {
-                await EnsureAsync("TEST_ID_0000", cmd =>
+                await EnsureAsync("TEST_ID_0000",cmd=>
                 {
-                    RoadmapUiReply reply;
-                    if (cmd[0] == "focus-chat")
+                    RoadmapUiReply answer;
+                    if(cmd[0]=="focus-chat")
+                        answer=focuses[Math.Min(fc++,focuses.Length-1)];
+                    else if(cmd[0]=="recover-existing-chat")
                     {
-                        reply = focusReplies[Math.Min(focuses, focusReplies.Length - 1)];
-                        focuses++;
+                        Check(cmd.SequenceEqual(["recover-existing-chat","--chat","TEST_ID_0000"]));
+                        answer=recoveries[Math.Min(rc++,recoveries.Length-1)];
                     }
-                    else if (cmd[0] == "open-chat")
+                    else if(cmd[0]=="open-chat")
                     {
-                        Check(cmd.SequenceEqual(new[]{
-                            "open-chat","--chat","TEST_ID_0000","--mode","new-window"
-                        }));
-                        reply = openReplies[Math.Min(opens, openReplies.Length - 1)];
-                        opens++;
+                        Check(cmd.SequenceEqual(["open-chat","--chat","TEST_ID_0000",
+                            "--mode","new-window"]));
+                        answer=opens[Math.Min(oc++,opens.Length-1)];
                     }
-                    else throw new InvalidOperationException("UNEXPECTED_COMMAND");
-                    return Task.FromResult(reply);
-                }, _ => Task.CompletedTask, observations.Add);
+                    else throw new InvalidDataException("UNEXPECTED_UIA_COMMAND");
+                    return Task.FromResult(answer);
+                },_=>Task.CompletedTask,events.Add);
             }
-            catch (InvalidOperationException) { failed = true; }
-            return (focuses, opens, observations, failed);
+            catch(InvalidOperationException){pass=false;}
+            return(pass,fc,rc,oc,events);
         }
-
-        var success = await RunScenario([FocusOk()], []);
-        Check(!success.failed && success.focuses == 1 && success.opens == 0);
-
-        var transient = await RunScenario([Changed(), FocusOk()], []);
-        Check(!transient.failed && transient.focuses == 2 && transient.opens == 0);
-
-        var persistent = await RunScenario([Changed()], []);
-        Check(persistent.failed && persistent.focuses == 4 && persistent.opens == 0);
-        Check(persistent.events.Count == 4);
-
-        var closed = await RunScenario([Closed(), FocusOk()], [OpenOk()]);
-        Check(!closed.failed && closed.focuses == 2 && closed.opens == 1);
-        var expired = await RunScenario([PinExpired(), FocusOk()], [OpenOk()]);
-        Check(!expired.failed && expired.focuses == 2 && expired.opens == 1);
-        Check(expired.events[1].Operation=="open-chat");
-        var stillExpired = await RunScenario([PinExpired()], [OpenOk()]);
-        Check(stillExpired.failed && stillExpired.focuses == 2 && stillExpired.opens == 1);
-
-        var unsafeOpen = await RunScenario([Closed()], [
-            new(0, "OPEN_UNVERIFIED", "NONE", "")]);
-        Check(unsafeOpen.failed && unsafeOpen.focuses == 1 && unsafeOpen.opens == 1);
-
-        var unknown = await RunScenario([
-            new(2, "BLOCKED", "InvalidOperationException", "OTHER_ERROR")], []);
-        Check(unknown.failed && unknown.focuses == 1 && unknown.opens == 0);
-
-        var invalid = RoadmapUiReply.Parse(2,
-            """{"status":"BLOCKED","reasonCode":"InvalidOperationException","detail":"TARGET_TAB_CHANGED: teste"}""", "");
-        Check(invalid.Reason == "InvalidOperationException" && IsChanged(invalid));
-
-        var validNested = RoadmapUiReply.Parse(0,
-            """{"chat":"TEST_ID_0000","result":{"status":"OPENED_VERIFIED"}}""", "");
+        var ready=await Scenario([FocusOk()],[],[]);
+        Check(ready.pass && ready.focus==1 && ready.open==0 && ready.recover==0);
+        // Principal regressao do caso real: Edge ja aberto apos falha de ACK.
+        var existing=await Scenario([Expired(),FocusOk()],[RecoverOk()],[]);
+        Check(existing.pass && existing.focus==2 && existing.recover==1 && existing.open==0);
+        var noWindow=await Scenario([Expired(),FocusOk()],[Missing()],[OpenOk()]);
+        Check(noWindow.pass && noWindow.open==1 && noWindow.focus==2 && noWindow.recover==3);
+        // Janela abriu, open-chat retornou erro, a mesma guia ficou disponivel.
+        var partial=await Scenario([Closed(),FocusOk()],
+            [Missing(),Missing(),Missing(),RecoverOk()],[OpenPartial()]);
+        Check(partial.pass && partial.open==1 && partial.recover==4 && partial.focus==2);
+        var ambiguous=await Scenario([Expired()],[Ambiguous()],[]);
+        Check(!ambiguous.pass && ambiguous.open==0 && ambiguous.recover==1);
+        var noACK=await Scenario([Expired()],
+            [Missing(),Missing(),Missing(),Missing()],[OpenPartial()]);
+        Check(!noACK.pass && noACK.open==1);
+        var transient=await Scenario([Changed(),FocusOk()],[],[]);
+        Check(transient.pass && transient.focus==2 && transient.open==0);
+        var persistent=await Scenario([Changed()],[],[]);
+        Check(!persistent.pass && persistent.focus==5 && persistent.open==0);
+        var unexpected=await Scenario([new(2,"BLOCKED","InvalidOperationException","OTHER_ERROR")],[],[]);
+        Check(!unexpected.pass && unexpected.open==0);
+        var validNested=RoadmapUiReply.Parse(0,
+            """{"chat":"TEST_ID_0000","result":{"status":"OPENED_VERIFIED"}}""","");
         Check(IsVerifiedOpen(validNested));
-
-        var malformed = RoadmapUiReply.Parse(2, "not json", "test");
-        Check(!malformed.Ok && malformed.Status == "INVALID_RESPONSE");
+        var invalid=RoadmapUiReply.Parse(2,"not json","err");
+        Check(!invalid.Ok && invalid.Status=="INVALID_RESPONSE");
     }
 
     private static void Check(bool condition)

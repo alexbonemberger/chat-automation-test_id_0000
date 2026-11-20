@@ -3,7 +3,8 @@
 param(
     [Parameter(Mandatory=$true)][string]$Revision,
     [string]$Root = 'C:\alexbonemberger\on-my-own\chat-automation\projects\chat-automation-test_id_0000',
-    [string]$Plano = 'fundamentos-csharp-v2'
+    [string]$Plano = 'fundamentos-csharp-v2',
+    [string]$Runner
 )
 $ErrorActionPreference = 'Stop'
 $PSNativeCommandUseErrorActionPreference = $false
@@ -78,8 +79,12 @@ $RunnerOptions = @(
     (Join-Path $RootBase 'chess-cycle-csharp/ChatAutomation/bin/Release/net8.0-windows/chat-automation.dll'),
     (Join-Path $RootBase 'source/ChatAutomation/bin/Release/net8.0-windows/chat-automation.dll')
 )
-$Runner = $RunnerOptions | Where-Object { Test-Path -LiteralPath $_ } |
-    Select-Object -First 1
+if ([string]::IsNullOrWhiteSpace($Runner)) {
+    $Runner = $RunnerOptions | Where-Object { Test-Path -LiteralPath $_ } |
+        Select-Object -First 1
+} else {
+    $Runner = [IO.Path]::GetFullPath($Runner)
+}
 if (-not $Runner) {
     throw 'Runner ChatAutomation nao encontrado; verificar caminho antes de enviar.'
 }
@@ -120,6 +125,18 @@ Write-Host "FONTE_REMOTA_PRESENTE=$Exists"
 Write-Host "ENVIO_MARCADOR_PRESENTE=$(Test-Path -LiteralPath $Sent)"
 Write-Host "ENVIO_RECIBO_PRESENTE=$(Test-Path -LiteralPath $SentReply)"
 Write-Host "RECIBO_FINAL_PRESENTE=$(Test-Path -LiteralPath $Receipt)"
+
+# Uma repeticao de legado ja registrada nunca autoriza um segundo envio.
+# O marcador da primeira tentativa permanece como evidencia.
+$Replay = Join-Path $Folder 'reenvio-unico.json'
+$Preserved = Join-Path $Folder 'envio.txt.pre-replay-once'
+if ((Test-Path -LiteralPath $Replay) -and -not $Exists -and
+    -not (Test-Path -LiteralPath $Receipt) -and
+    -not (Test-Path -LiteralPath $Sent)) {
+    Write-Host 'ESTADO=REPLAY_ANTERIOR_SEM_MARCADOR_DE_SEGUNDO_ENVIO'
+    Write-Host 'DECISAO=NAO_REPETIR_AUTOMATICAMENTE'
+    return
+}
 
 if ((Test-Path -LiteralPath $Sent) -and -not $Exists -and
     -not (Test-Path -LiteralPath $Receipt)) {
