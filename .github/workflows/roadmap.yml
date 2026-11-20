@@ -21,6 +21,9 @@ jobs:
         with: {persist-credentials: false}
       - name: Compilar controlador
         run: dotnet build roadmap/src/Roadmap.csproj -c Release
+      - name: Autoteste C# de identidade, idempotencia e corrupcao do checkpoint
+        if: github.event_name == 'push'
+        run: dotnet run --project roadmap/src/Roadmap.csproj -c Release -- self-test
       - name: Provar compilação, acerto e diagnósticos
         if: github.event_name == 'push'
         shell: pwsh
