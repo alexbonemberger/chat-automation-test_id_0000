@@ -1,6 +1,8 @@
 name: Roadmap CSharp
 run-name: roadmap-${{ inputs.ticket || 'ci' }}
 on:
+  pull_request:
+    paths: ['roadmap/**', '.github/workflows/roadmap.yml']
   workflow_dispatch:
     inputs:
       ticket: {required: true, type: string}
@@ -22,10 +24,10 @@ jobs:
       - name: Compilar controlador
         run: dotnet build roadmap/src/Roadmap.csproj -c Release
       - name: Autoteste C# de identidade, idempotencia e corrupcao do checkpoint
-        if: github.event_name == 'push'
+        if: github.event_name != 'workflow_dispatch'
         run: dotnet run --project roadmap/src/Roadmap.csproj -c Release -- self-test
       - name: Provar compilação, acerto e diagnósticos
-        if: github.event_name == 'push'
+        if: github.event_name != 'workflow_dispatch'
         shell: pwsh
         run: |
           foreach ($case in @(@('Console.WriteLine(int.Parse(args[0])*2);',$true,0),@('Console.WriteLine(0);',$false,0),@('int x = ;',$false,1))) {
