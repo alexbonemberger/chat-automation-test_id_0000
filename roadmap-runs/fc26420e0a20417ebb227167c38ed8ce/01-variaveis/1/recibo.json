@@ -1,0 +1,11 @@
+{
+  "pass": true,
+  "step": "01-variaveis",
+  "attempt": 1,
+  "source": "roadmap-runs/fc26420e0a20417ebb227167c38ed8ce/01-variaveis/1/Program.cs",
+  "commit": "8a48e290d5a5fdaf423ad5fad3e0802b5d4418b7",
+  "sha256": "280E68EB4544FBDCA7234AAD23FD8BEC89E47C13A1E7575FA95FC744F6E703E3",
+  "buildLog": "  Determinando os projetos a serem restaurados...\r\n  \u003Cbuild\u003E\\Codigo.csproj restaurado (em 40 ms).\r\n  Codigo -\u003E \u003Cbuild\u003E\\bin\\Release\\net8.0\\Codigo.dll\r\n\r\nCompila\u251C\u00BA\u251C\u00FAo com \u251C\u00ACxito.\r\n    0 Aviso(s)\r\n    0 Erro(s)\r\n\r\nTempo Decorrido 00:00:00.49\r\n",
+  "tests": "{\r\n  \u0022buildExit\u0022: 0,\r\n  \u0022pass\u0022: true,\r\n  \u0022cases\u0022: [\r\n    {\r\n      \u0022exitCode\u0022: 0,\r\n      \u0022actual\u0022: \u00227\u0022,\r\n      \u0022expected\u0022: \u00227\u0022,\r\n      \u0022pass\u0022: true,\r\n      \u0022input\u0022: \u0022identidade:7\u0022\r\n    },\r\n    {\r\n      \u0022exitCode\u0022: 0,\r\n      \u0022actual\u0022: \u0022-2\u0022,\r\n      \u0022expected\u0022: \u0022-2\u0022,\r\n      \u0022pass\u0022: true,\r\n      \u0022input\u0022: \u0022identidade:-2\u0022\r\n    },\r\n    {\r\n      \u0022exitCode\u0022: 0,\r\n      \u0022actual\u0022: \u00220\u0022,\r\n      \u0022expected\u0022: \u00220\u0022,\r\n      \u0022pass\u0022: true,\r\n      \u0022input\u0022: \u0022identidade:0\u0022\r\n    }\r\n  ],\r\n  \u0022sourceSha256\u0022: \u0022280E68EB4544FBDCA7234AAD23FD8BEC89E47C13A1E7575FA95FC744F6E703E3\u0022\r\n}\r\n",
+  "actions": "https://github.com/alexbonemberger/chat-automation-test_id_0000/actions/runs/44660729459"
+}
