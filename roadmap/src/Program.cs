@@ -186,9 +186,13 @@ internal static class Program
                             // O handoff pode trocar a guia; comprovar foco e ociosidade
                             // da nova identidade antes de autorizar o envio.
                             await Ui("focus-chat","--chat",chat);
-                            var newBusy=await Ui("is-busy","--chat",chat);
-                            if (newBusy.GetProperty("isBusy").GetBoolean())
-                                throw new IOException("CHAT_NOVO_OCUPADO: retomar sem marcar envio.");
+                            var idleClock=Stopwatch.StartNew();
+                            while ((await Ui("is-busy","--chat",chat)).GetProperty("isBusy").GetBoolean())
+                            {
+                                if (idleClock.Elapsed>Limit)
+                                    throw new TimeoutException("CHAT_NOVO_OCUPADO: sem marcar envio; retomar.");
+                                await Task.Delay(8000);
+                            }
                             if ((await Ui("check-max-limit","--chat",chat)).GetProperty("isAtMaxLimit").GetBoolean())
                                 throw new IOException("HANDOFF_ALVO_TAMBEM_LIMITADO: sem envio.");
                             Save(sent,DateTimeOffset.UtcNow.ToString("O"));
