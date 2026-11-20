@@ -1,0 +1,11 @@
+{
+  "pass": true,
+  "step": "triplo",
+  "attempt": 1,
+  "source": "roadmap-runs/69b8c98851f74ceb83e14c1bec739ebf/triplo/1/Program.cs",
+  "commit": "2941caa056dab47fcb201c0ed45e15987086d915",
+  "sha256": "00A2470FF32B130C771A5258AAC6783C0F0D541DCE16CDC3155018DB8545DDB9",
+  "buildLog": "  Determinando os projetos a serem restaurados...\r\n  \u003Cbuild\u003E\\Codigo.csproj restaurado (em 75 ms).\r\n  Codigo -\u003E \u003Cbuild\u003E\\bin\\Release\\net8.0\\Codigo.dll\r\n\r\nCompila\u251C\u00BA\u251C\u00FAo com \u251C\u00ACxito.\r\n    0 Aviso(s)\r\n    0 Erro(s)\r\n\r\nTempo Decorrido 00:00:00.69\r\n",
+  "tests": "{\r\n  \u0022cases\u0022: [\r\n    {\r\n      \u0022input\u0022: \u00225\u0022,\r\n      \u0022expected\u0022: \u002215\u0022,\r\n      \u0022actual\u0022: \u002215\u0022,\r\n      \u0022exitCode\u0022: 0,\r\n      \u0022pass\u0022: true\r\n    },\r\n    {\r\n      \u0022input\u0022: \u0022-2\u0022,\r\n      \u0022expected\u0022: \u0022-6\u0022,\r\n      \u0022actual\u0022: \u0022-6\u0022,\r\n      \u0022exitCode\u0022: 0,\r\n      \u0022pass\u0022: true\r\n    }\r\n  ],\r\n  \u0022buildExit\u0022: 0,\r\n  \u0022sourceSha256\u0022: \u002200A2470FF32B130C771A5258AAC6783C0F0D541DCE16CDC3155018DB8545DDB9\u0022,\r\n  \u0022pass\u0022: true\r\n}\r\n",
+  "actions": "https://github.com/alexbonemberger/chat-automation-test_id_0000/actions/runs/44642260497"
+}
