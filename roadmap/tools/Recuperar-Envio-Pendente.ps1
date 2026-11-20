@@ -17,7 +17,9 @@ if ($LASTEXITCODE -ne 0) { throw 'GitHub CLI nao autenticado.' }
 
 $Files = @(
     'roadmap/src/Program.cs',
+    'roadmap/src/RoadmapVerifier.cs',
     'roadmap/src/RoadmapFocusPreflight.cs',
+    'roadmap/plans/fundamentos-csharp-v2.json',
     'roadmap/tools/Inspecionar-Janelas-Agendadas.ps1'
 )
 
