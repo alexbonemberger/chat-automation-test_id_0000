@@ -129,6 +129,9 @@ internal static class RoadmapFocusPreflight
                     }
                     else if (cmd[0] == "open-chat")
                     {
+                        Check(cmd.SequenceEqual(new[]{
+                            "open-chat","--chat","TEST_ID_0000","--mode","new-window"
+                        }));
                         reply = openReplies[Math.Min(opens, openReplies.Length - 1)];
                         opens++;
                     }
