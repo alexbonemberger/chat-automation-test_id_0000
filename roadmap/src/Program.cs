@@ -62,7 +62,27 @@ internal static class Program
 
     static async Task<int> Main(string[] args)
     {
-        try { await Cycle(args); return 0; }
+        try
+        {
+            if (args.Length == 1 && args[0] == "verifier-self-test")
+            {
+                await RoadmapVerifier.SelfTestAsync();
+                Console.WriteLine("ROADMAP_VERIFIER_SELFTEST=PASS");
+                return 0;
+            }
+            if (args.Length > 0 && args[0] == "verify")
+            {
+                if (args.Length < 5 || args.Length > 6 ||
+                    args.Length == 6 && args[5] != "--compile-only")
+                    throw new ArgumentException("verify <fonte> <plano> <etapa> <destino> [--compile-only]");
+                await RoadmapVerifier.VerifyAsync(args[1], args[2], args[3], args[4],
+                    compileOnly: args.Length == 6);
+                Console.WriteLine("ROADMAP_VERIFIER=COMPLETE");
+                return 0;
+            }
+            await Cycle(args);
+            return 0;
+        }
         catch (Exception e) { Console.Error.WriteLine(e.Message); return 1; }
     }
 
@@ -142,7 +162,7 @@ internal static class Program
                     var remotePlan=await Read("roadmap/plans/"+name+".json",sha);
                     if(remotePlan==null || !remotePlan.SequenceEqual(planBytes)) throw new IOException("O plano local difere do commit do candidato.");
                     var source=Path.Combine(folder,"Program.cs"); File.WriteAllBytes(source,src);
-                    await Run("pwsh",["-NoProfile","-File",Path.Combine(root,"roadmap","verificar.ps1"),source,planPath,step.Id,folder,"-SoCompilar"]);
+                    await RoadmapVerifier.VerifyAsync(source,planPath,step.Id,folder,compileOnly:true);
                     var local=JsonDocument.Parse(File.ReadAllText(Path.Combine(folder,"resultado.json"))).RootElement;
                     var log=File.ReadAllText(Path.Combine(folder,"build.log"));
                     log=log.Replace(root,"<projeto>",StringComparison.OrdinalIgnoreCase).Replace(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),"<usuario>",StringComparison.OrdinalIgnoreCase);
