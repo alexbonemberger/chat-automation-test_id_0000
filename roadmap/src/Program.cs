@@ -62,7 +62,17 @@ internal static class Program
 
     static async Task<int> Main(string[] args)
     {
-        try { await Cycle(args); return 0; }
+        try
+        {
+            if (args.Length == 1 && args[0] == "self-test")
+            {
+                ActiveChatCheckpoint.SelfTest();
+                Console.WriteLine("ROADMAP_PIN_SELFTEST=PASS");
+                return 0;
+            }
+            await Cycle(args);
+            return 0;
+        }
         catch (Exception e) { Console.Error.WriteLine(e.Message); return 1; }
     }
 
@@ -89,12 +99,8 @@ internal static class Program
         // A rota local e apenas o bootstrap. Depois do handoff, a identidade ativa
         // deve permanecer pinada no disco; reiniciar nunca pode voltar ao chat antigo.
         var activeFile=Path.Combine(state,"chat.ativo");
-        if (!File.Exists(activeFile)) Save(activeFile,chat);
-        var pinnedChat=File.ReadAllText(activeFile).Trim();
-        if (string.IsNullOrWhiteSpace(pinnedChat) ||
-            !list.EnumerateArray().Any(c=>c.GetProperty("name").GetString()==pinnedChat))
-            throw new IOException("CHAT_ATIVO_NAO_CADASTRADO: nao escolher outro chat automaticamente.");
-        chat=pinnedChat;
+        chat=ActiveChatCheckpoint.LoadOrCreate(activeFile,chat,
+            list.EnumerateArray().Select(c=>c.GetProperty("name").GetString()!).ToArray());
         var runFile=Path.Combine(state,"execucao");
         if (!File.Exists(runFile)) Save(runFile,Guid.NewGuid().ToString("N"));
         var run=File.ReadAllText(runFile);
@@ -136,7 +142,8 @@ internal static class Program
                         c.GetProperty("url").GetString()==url))
                         throw new IOException("HANDOFF_NAO_CADASTRADO: sem troca.");
                     // Commit atomico do destino antes de novos prompts.
-                    Save(activeFile,target);
+                    ActiveChatCheckpoint.CommitSwitch(activeFile,oldChat,target,
+                        after.EnumerateArray().Select(c=>c.GetProperty("name").GetString()!).ToArray());
                     chat=target;
                     Console.WriteLine($"HANDOFF=PASS ORIGEM={oldChat} CHAT={chat}");
                     return;
