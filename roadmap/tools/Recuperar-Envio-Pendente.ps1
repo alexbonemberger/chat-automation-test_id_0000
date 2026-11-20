@@ -123,10 +123,50 @@ Write-Host "RECIBO_FINAL_PRESENTE=$(Test-Path -LiteralPath $Receipt)"
 
 if ((Test-Path -LiteralPath $Sent) -and -not $Exists -and
     -not (Test-Path -LiteralPath $Receipt)) {
-    Write-Host 'ESTADO=ENVIO_INCERTO_SEM_CODIGO_REMOTO'
-    Write-Host 'DECISAO=NAO_REENVIAR_NEM_APAGAR_MARCADOR'
-    Write-Host "DIAGNOSTICO=$(Join-Path $Folder 'focus-probe.jsonl')"
-    return
+    # O marcador legacy e gravado ANTES do comando de envio, e nao prova
+    # entrega. A ausencia de codigo e de envio.json tambem nao prova falha
+    # do envio. Permitir no maximo UMA repeticao idempotente autorizada para
+    # este mesmo destino; preservar o marcador antigo como evidencia.
+    $Replay = Join-Path $Folder 'reenvio-unico.json'
+    $Preserved = Join-Path $Folder 'envio.txt.pre-replay-once'
+    if (Test-Path -LiteralPath $SentReply) {
+        Write-Host 'ESTADO=ENVIO_CONFIRMADO_NA_CLI_SEM_FONTE_REMOTA'
+        Write-Host 'DECISAO=AGUARDAR_CODIGO_SEM_REENVIO'
+        return
+    }
+    if ((Test-Path -LiteralPath $Replay) -or
+        (Test-Path -LiteralPath $Preserved)) {
+        Write-Host 'ESTADO=REPETICAO_JA_AUTORIZADA_SEM_FONTE_REMOTA'
+        Write-Host 'DECISAO=NAO_REENVIAR_SEGUNDA_VEZ'
+        return
+    }
+    $Age = ((Get-Date).ToUniversalTime() -
+        (Get-Item -LiteralPath $Sent).LastWriteTimeUtc).TotalMinutes
+    if ($Age -lt 3) {
+        Write-Host "ESTADO=ENVIO_RECENTE_SEM_COMPROVACAO IDADE_MIN=$([math]::Round($Age,2))"
+        Write-Host 'DECISAO=NAO_REENVIAR_AGORA'
+        return
+    }
+    $Record = [pscustomobject]@{
+        schema='chat-automation.legacy-intent-replay/1'
+        execution=$RunId
+        source=$Remote
+        marker='envio.txt.pre-replay-once'
+        previousSendStatus='UNKNOWN'
+        githubSourcePresent=$false
+        replyReceiptPresent=$false
+        observedUtc=[DateTimeOffset]::UtcNow.ToString('O')
+        maximumAdditionalSendAttempts=1
+        note='O envio antigo pode ter ocorrido. Repeticao unica da mesma tarefa GitHub idempotente.'
+    }
+    $ReplayTemp = "$Replay.tmp"
+    $Record | ConvertTo-Json -Depth 5 |
+        Set-Content -LiteralPath $ReplayTemp -Encoding utf8
+    [IO.File]::Move($ReplayTemp,$Replay)
+    Move-Item -LiteralPath $Sent -Destination $Preserved -ErrorAction Stop
+    Write-Host 'ESTADO=REPLAY_UNICO_REGISTRADO'
+    Write-Host 'RISCO=O_ENVIO_ANTERIOR_PODE_TER_OCORRIDO'
+    Write-Host 'PROTECAO=APENAS_UM_ENVIO_ADICIONAL_MESMO_DESTINO'
 }
 
 Write-Host 'ESTADO=RETOMADA_PERMITIDA_PELO_CONTROLADOR'
