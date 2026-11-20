@@ -41,6 +41,18 @@ jobs:
           if ($errorsFound.Count -gt 0) {
             throw ($errorsFound | Out-String)
           }
+      - name: Validar sintaxe PS7 do recuperador sem reenvio
+        if: github.event_name != 'workflow_dispatch'
+        shell: pwsh
+        run: |
+          $tokens = $null
+          $errorsFound = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path roadmap/tools/Recuperar-Envio-Pendente.ps1).Path,
+            [ref]$tokens, [ref]$errorsFound)
+          if ($errorsFound.Count -gt 0) {
+            throw ($errorsFound | Out-String)
+          }
       - name: Provar compilação, acerto e diagnósticos
         if: github.event_name != 'workflow_dispatch'
         shell: pwsh
