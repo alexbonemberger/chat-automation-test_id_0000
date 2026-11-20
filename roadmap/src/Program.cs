@@ -64,6 +64,12 @@ internal static class Program
     {
         try
         {
+            if (args.Length == 1 && args[0] == "focus-self-test")
+            {
+                await RoadmapFocusPreflight.SelfTestAsync();
+                Console.WriteLine("ROADMAP_FOCUS_SELFTEST=PASS");
+                return 0;
+            }
             if (args.Length == 1 && args[0] == "verifier-self-test")
             {
                 await RoadmapVerifier.SelfTestAsync();
@@ -99,6 +105,11 @@ internal static class Program
             plan.Steps.Any(s=>!Id(s.Id)||s.Cases.Length==0)) throw new InvalidDataException("Plano inválido");
         var route=JsonDocument.Parse(File.ReadAllText(Path.Combine(root,"rota.local.json"))).RootElement;
         async Task<JsonElement> Ui(params string[] cmd) => JsonDocument.Parse((await Run("dotnet",new[]{dll}.Concat(cmd))).Out).RootElement.Clone();
+        async Task<RoadmapUiReply> UiPreflight(string[] cmd)
+        {
+            var result = await Run("dotnet",new[]{dll}.Concat(cmd),required:false);
+            return RoadmapUiReply.Parse(result.Code,result.Out,result.Error);
+        }
         var list=(await Ui("list-chats")).GetProperty("chats");
         var chat=list.EnumerateArray().Single(x=>x.GetProperty("url").GetString()==route.GetProperty("url").GetString()).GetProperty("name").GetString()!;
         var publishedPlan=await Read("roadmap/plans/"+name+".json","main");
@@ -135,8 +146,17 @@ internal static class Program
                         {
                             var prompt=$"No GitHub {Repo}, main, crie {path} com o programa de console C# .NET 8 completo. Preserve se já existir. Etapa {step.Id}: {step.Task} Casos: {JsonSerializer.Serialize(step.Cases)}. Leia a versão anterior se indicada: {previous}. Diagnóstico anterior: {feedback}. Grave somente o arquivo .cs e confirme o commit.";
                             var promptFile=Path.Combine(folder,"prompt.txt"); Save(promptFile,prompt);
-                            try { await Ui("focus-chat","--chat",chat); }
-                            catch (IOException) { await Ui("open-chat","--chat",chat); await Ui("focus-chat","--chat",chat); }
+                            await RoadmapFocusPreflight.EnsureAsync(chat,UiPreflight,
+                                duration=>Task.Delay(duration),observation=>
+                                {
+                                    var log=Path.Combine(folder,"focus-preflight.jsonl");
+                                    var data=JsonSerializer.Serialize(new {
+                                        observedUtc=DateTimeOffset.UtcNow,
+                                        chat,observation.Attempt,observation.Operation,
+                                        observation.ExitCode,observation.Status,
+                                        observation.ReasonCode,observation.Detail});
+                                    File.AppendAllText(log,data+Environment.NewLine);
+                                });
                             var clock=Stopwatch.StartNew();
                             while ((await Ui("is-busy","--chat",chat)).GetProperty("isBusy").GetBoolean())
                             {
