@@ -1,0 +1,458 @@
+{
+  "id": "fundamentos-csharp-v2",
+  "version": 1,
+  "contracts": {
+    "framework": "net8.0",
+    "mode": "one-feature-per-step",
+    "command_format": "operacao:argumentos",
+    "stdout": "one deterministic line",
+    "max_attempts_per_step": 3,
+    "regression": "cumulative tests in every step"
+  },
+  "steps": [
+    {
+      "id": "01-variaveis",
+      "topic": "Variables, Data Types, Type Casting",
+      "reference": "https://www.w3schools.com/cs/cs_variables.php",
+      "task": "Implemente identidade:<int>: retorne o inteiro como texto decimal (InvariantCulture). Variaveis, tipos e conversao. Contrato global: programa de console C# .NET 8 em um unico Program.cs; args[0] recebe um unico comando no formato operacao:argumentos; interpretar numeros com CultureInfo.InvariantCulture; stdout exato, uma linha e sem texto adicional; evitar dependencias externas, rede e input interativo. Preservar TODOS os comandos anteriores e implementar somente a operacao desta etapa. O conjunto de casos desta etapa e cumulativo e testa regressao. Em caso de entrada fora do contrato, falhar com mensagem em stderr e codigo nao zero, sem bloquear nem aguardar.",
+      "cases": [
+        {
+          "input": "identidade:7",
+          "output": "7"
+        },
+        {
+          "input": "identidade:-2",
+          "output": "-2"
+        },
+        {
+          "input": "identidade:0",
+          "output": "0"
+        }
+      ]
+    },
+    {
+      "id": "02-operadores",
+      "topic": "Operators",
+      "reference": "https://www.w3schools.com/cs/cs_operators.php",
+      "task": "Adicione dobro:<int>: calcule checked(n*2), sem mudar identidade. Operadores aritmeticos. Contrato global: programa de console C# .NET 8 em um unico Program.cs; args[0] recebe um unico comando no formato operacao:argumentos; interpretar numeros com CultureInfo.InvariantCulture; stdout exato, uma linha e sem texto adicional; evitar dependencias externas, rede e input interativo. Preservar TODOS os comandos anteriores e implementar somente a operacao desta etapa. O conjunto de casos desta etapa e cumulativo e testa regressao. Em caso de entrada fora do contrato, falhar com mensagem em stderr e codigo nao zero, sem bloquear nem aguardar.",
+      "cases": [
+        {
+          "input": "identidade:7",
+          "output": "7"
+        },
+        {
+          "input": "identidade:-2",
+          "output": "-2"
+        },
+        {
+          "input": "identidade:0",
+          "output": "0"
+        },
+        {
+          "input": "dobro:4",
+          "output": "8"
+        },
+        {
+          "input": "dobro:-7",
+          "output": "-14"
+        }
+      ]
+    },
+    {
+      "id": "03-condicionais",
+      "topic": "Booleans, If...Else",
+      "reference": "https://www.w3schools.com/cs/cs_conditions.php",
+      "task": "Adicione sinal:<int>, retornando NEGATIVO para n<0, ZERO para n=0 e POSITIVO para n>0. Use if/else. Contrato global: programa de console C# .NET 8 em um unico Program.cs; args[0] recebe um unico comando no formato operacao:argumentos; interpretar numeros com CultureInfo.InvariantCulture; stdout exato, uma linha e sem texto adicional; evitar dependencias externas, rede e input interativo. Preservar TODOS os comandos anteriores e implementar somente a operacao desta etapa. O conjunto de casos desta etapa e cumulativo e testa regressao. Em caso de entrada fora do contrato, falhar com mensagem em stderr e codigo nao zero, sem bloquear nem aguardar.",
+      "cases": [
+        {
+          "input": "identidade:7",
+          "output": "7"
+        },
+        {
+          "input": "identidade:-2",
+          "output": "-2"
+        },
+        {
+          "input": "identidade:0",
+          "output": "0"
+        },
+        {
+          "input": "dobro:4",
+          "output": "8"
+        },
+        {
+          "input": "dobro:-7",
+          "output": "-14"
+        },
+        {
+          "input": "sinal:-3",
+          "output": "NEGATIVO"
+        },
+        {
+          "input": "sinal:0",
+          "output": "ZERO"
+        },
+        {
+          "input": "sinal:8",
+          "output": "POSITIVO"
+        }
+      ]
+    },
+    {
+      "id": "04-switch",
+      "topic": "Switch",
+      "reference": "https://www.w3schools.com/cs/cs_switch.php",
+      "task": "Adicione dia:<int> via switch: 1 SEGUNDA, 2 TERCA, 3 QUARTA, 4 QUINTA, 5 SEXTA, 6 SABADO, 7 DOMINGO; outros valores devem imprimir INVALIDO. Contrato global: programa de console C# .NET 8 em um unico Program.cs; args[0] recebe um unico comando no formato operacao:argumentos; interpretar numeros com CultureInfo.InvariantCulture; stdout exato, uma linha e sem texto adicional; evitar dependencias externas, rede e input interativo. Preservar TODOS os comandos anteriores e implementar somente a operacao desta etapa. O conjunto de casos desta etapa e cumulativo e testa regressao. Em caso de entrada fora do contrato, falhar com mensagem em stderr e codigo nao zero, sem bloquear nem aguardar.",
+      "cases": [
+        {
+          "input": "identidade:7",
+          "output": "7"
+        },
+        {
+          "input": "identidade:-2",
+          "output": "-2"
+        },
+        {
+          "input": "identidade:0",
+          "output": "0"
+        },
+        {
+          "input": "dobro:4",
+          "output": "8"
+        },
+        {
+          "input": "dobro:-7",
+          "output": "-14"
+        },
+        {
+          "input": "sinal:-3",
+          "output": "NEGATIVO"
+        },
+        {
+          "input": "sinal:0",
+          "output": "ZERO"
+        },
+        {
+          "input": "sinal:8",
+          "output": "POSITIVO"
+        },
+        {
+          "input": "dia:1",
+          "output": "SEGUNDA"
+        },
+        {
+          "input": "dia:7",
+          "output": "DOMINGO"
+        },
+        {
+          "input": "dia:9",
+          "output": "INVALIDO"
+        }
+      ]
+    },
+    {
+      "id": "05-for",
+      "topic": "For Loop",
+      "reference": "https://www.w3schools.com/cs/cs_for_loop.php",
+      "task": "Adicione somatorio:<int> para 0<=n<=1000: calcule soma 1+...+n com loop for, usando long. Preserve entradas antigas. Contrato global: programa de console C# .NET 8 em um unico Program.cs; args[0] recebe um unico comando no formato operacao:argumentos; interpretar numeros com CultureInfo.InvariantCulture; stdout exato, uma linha e sem texto adicional; evitar dependencias externas, rede e input interativo. Preservar TODOS os comandos anteriores e implementar somente a operacao desta etapa. O conjunto de casos desta etapa e cumulativo e testa regressao. Em caso de entrada fora do contrato, falhar com mensagem em stderr e codigo nao zero, sem bloquear nem aguardar.",
+      "cases": [
+        {
+          "input": "identidade:7",
+          "output": "7"
+        },
+        {
+          "input": "identidade:-2",
+          "output": "-2"
+        },
+        {
+          "input": "identidade:0",
+          "output": "0"
+        },
+        {
+          "input": "dobro:4",
+          "output": "8"
+        },
+        {
+          "input": "dobro:-7",
+          "output": "-14"
+        },
+        {
+          "input": "sinal:-3",
+          "output": "NEGATIVO"
+        },
+        {
+          "input": "sinal:0",
+          "output": "ZERO"
+        },
+        {
+          "input": "sinal:8",
+          "output": "POSITIVO"
+        },
+        {
+          "input": "dia:1",
+          "output": "SEGUNDA"
+        },
+        {
+          "input": "dia:7",
+          "output": "DOMINGO"
+        },
+        {
+          "input": "dia:9",
+          "output": "INVALIDO"
+        },
+        {
+          "input": "somatorio:0",
+          "output": "0"
+        },
+        {
+          "input": "somatorio:4",
+          "output": "10"
+        },
+        {
+          "input": "somatorio:10",
+          "output": "55"
+        }
+      ]
+    },
+    {
+      "id": "06-arrays",
+      "topic": "Arrays",
+      "reference": "https://www.w3schools.com/cs/cs_arrays.php",
+      "task": "Adicione ordenar:<inteiros separados por virgula>: crie int[], Array.Sort e imprima numeros separados por virgula sem espacos; aceitar negativos. Contrato global: programa de console C# .NET 8 em um unico Program.cs; args[0] recebe um unico comando no formato operacao:argumentos; interpretar numeros com CultureInfo.InvariantCulture; stdout exato, uma linha e sem texto adicional; evitar dependencias externas, rede e input interativo. Preservar TODOS os comandos anteriores e implementar somente a operacao desta etapa. O conjunto de casos desta etapa e cumulativo e testa regressao. Em caso de entrada fora do contrato, falhar com mensagem em stderr e codigo nao zero, sem bloquear nem aguardar.",
+      "cases": [
+        {
+          "input": "identidade:7",
+          "output": "7"
+        },
+        {
+          "input": "identidade:-2",
+          "output": "-2"
+        },
+        {
+          "input": "identidade:0",
+          "output": "0"
+        },
+        {
+          "input": "dobro:4",
+          "output": "8"
+        },
+        {
+          "input": "dobro:-7",
+          "output": "-14"
+        },
+        {
+          "input": "sinal:-3",
+          "output": "NEGATIVO"
+        },
+        {
+          "input": "sinal:0",
+          "output": "ZERO"
+        },
+        {
+          "input": "sinal:8",
+          "output": "POSITIVO"
+        },
+        {
+          "input": "dia:1",
+          "output": "SEGUNDA"
+        },
+        {
+          "input": "dia:7",
+          "output": "DOMINGO"
+        },
+        {
+          "input": "dia:9",
+          "output": "INVALIDO"
+        },
+        {
+          "input": "somatorio:0",
+          "output": "0"
+        },
+        {
+          "input": "somatorio:4",
+          "output": "10"
+        },
+        {
+          "input": "somatorio:10",
+          "output": "55"
+        },
+        {
+          "input": "ordenar:3,1,2",
+          "output": "1,2,3"
+        },
+        {
+          "input": "ordenar:0,-2,10",
+          "output": "-2,0,10"
+        }
+      ]
+    },
+    {
+      "id": "07-metodos",
+      "topic": "Methods, Parameters, Return Values",
+      "reference": "https://www.w3schools.com/cs/cs_methods.php",
+      "task": "Adicione mdc:<a>,<b> usando metodo estatico separado com algoritmo de Euclides, somente inteiros positivos nos casos. Mantenha intactas operacoes anteriores. Contrato global: programa de console C# .NET 8 em um unico Program.cs; args[0] recebe um unico comando no formato operacao:argumentos; interpretar numeros com CultureInfo.InvariantCulture; stdout exato, uma linha e sem texto adicional; evitar dependencias externas, rede e input interativo. Preservar TODOS os comandos anteriores e implementar somente a operacao desta etapa. O conjunto de casos desta etapa e cumulativo e testa regressao. Em caso de entrada fora do contrato, falhar com mensagem em stderr e codigo nao zero, sem bloquear nem aguardar.",
+      "cases": [
+        {
+          "input": "identidade:7",
+          "output": "7"
+        },
+        {
+          "input": "identidade:-2",
+          "output": "-2"
+        },
+        {
+          "input": "identidade:0",
+          "output": "0"
+        },
+        {
+          "input": "dobro:4",
+          "output": "8"
+        },
+        {
+          "input": "dobro:-7",
+          "output": "-14"
+        },
+        {
+          "input": "sinal:-3",
+          "output": "NEGATIVO"
+        },
+        {
+          "input": "sinal:0",
+          "output": "ZERO"
+        },
+        {
+          "input": "sinal:8",
+          "output": "POSITIVO"
+        },
+        {
+          "input": "dia:1",
+          "output": "SEGUNDA"
+        },
+        {
+          "input": "dia:7",
+          "output": "DOMINGO"
+        },
+        {
+          "input": "dia:9",
+          "output": "INVALIDO"
+        },
+        {
+          "input": "somatorio:0",
+          "output": "0"
+        },
+        {
+          "input": "somatorio:4",
+          "output": "10"
+        },
+        {
+          "input": "somatorio:10",
+          "output": "55"
+        },
+        {
+          "input": "ordenar:3,1,2",
+          "output": "1,2,3"
+        },
+        {
+          "input": "ordenar:0,-2,10",
+          "output": "-2,0,10"
+        },
+        {
+          "input": "mdc:12,18",
+          "output": "6"
+        },
+        {
+          "input": "mdc:17,4",
+          "output": "1"
+        }
+      ]
+    },
+    {
+      "id": "08-classes",
+      "topic": "Classes, Objects, Constructors, Methods",
+      "reference": "https://www.w3schools.com/cs/cs_classes.php",
+      "task": "Adicione media:<a>,<b>,<c> com classe concreta CalculadoraMedia instanciada via construtor. Formatar resultado com duas casas decimais e InvariantCulture. Preservar as sete operacoes anteriores. Contrato global: programa de console C# .NET 8 em um unico Program.cs; args[0] recebe um unico comando no formato operacao:argumentos; interpretar numeros com CultureInfo.InvariantCulture; stdout exato, uma linha e sem texto adicional; evitar dependencias externas, rede e input interativo. Preservar TODOS os comandos anteriores e implementar somente a operacao desta etapa. O conjunto de casos desta etapa e cumulativo e testa regressao. Em caso de entrada fora do contrato, falhar com mensagem em stderr e codigo nao zero, sem bloquear nem aguardar.",
+      "cases": [
+        {
+          "input": "identidade:7",
+          "output": "7"
+        },
+        {
+          "input": "identidade:-2",
+          "output": "-2"
+        },
+        {
+          "input": "identidade:0",
+          "output": "0"
+        },
+        {
+          "input": "dobro:4",
+          "output": "8"
+        },
+        {
+          "input": "dobro:-7",
+          "output": "-14"
+        },
+        {
+          "input": "sinal:-3",
+          "output": "NEGATIVO"
+        },
+        {
+          "input": "sinal:0",
+          "output": "ZERO"
+        },
+        {
+          "input": "sinal:8",
+          "output": "POSITIVO"
+        },
+        {
+          "input": "dia:1",
+          "output": "SEGUNDA"
+        },
+        {
+          "input": "dia:7",
+          "output": "DOMINGO"
+        },
+        {
+          "input": "dia:9",
+          "output": "INVALIDO"
+        },
+        {
+          "input": "somatorio:0",
+          "output": "0"
+        },
+        {
+          "input": "somatorio:4",
+          "output": "10"
+        },
+        {
+          "input": "somatorio:10",
+          "output": "55"
+        },
+        {
+          "input": "ordenar:3,1,2",
+          "output": "1,2,3"
+        },
+        {
+          "input": "ordenar:0,-2,10",
+          "output": "-2,0,10"
+        },
+        {
+          "input": "mdc:12,18",
+          "output": "6"
+        },
+        {
+          "input": "mdc:17,4",
+          "output": "1"
+        },
+        {
+          "input": "media:2,4,6",
+          "output": "4.00"
+        },
+        {
+          "input": "media:1,2,2",
+          "output": "1.67"
+        }
+      ]
+    }
+  ]
+}
