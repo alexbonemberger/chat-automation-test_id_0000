@@ -41,6 +41,7 @@ internal static class RoadmapFocusPreflight
     private static bool IsMissing(RoadmapUiReply r) =>
         r.Reason == "InvalidOperationException" &&
         (r.Detail.StartsWith("TARGET_WINDOW_CLOSED:", StringComparison.Ordinal) ||
+         r.Detail.StartsWith("PINNED_TAB_NOT_FOUND:", StringComparison.Ordinal) ||
          r.Detail.StartsWith("URL exata não encontrada nas guias inspecionáveis", StringComparison.Ordinal));
     private static bool IsVerifiedFocus(RoadmapUiReply r) =>
         r.Ok && r.Status == "FOCUSED_EXACT_URL";
@@ -64,7 +65,10 @@ internal static class RoadmapFocusPreflight
             if (IsMissing(focus) && !opened)
             {
                 opened = true;
-                var open = await ui(["open-chat", "--chat", chat]);
+                // Nova janela permite recuperar HWND/RuntimeId efêmeros. Não
+                // seleciona cópia antiga ou outra guia por URL.
+                var open = await ui(["open-chat", "--chat", chat,
+                    "--mode", "new-window"]);
                 journal(new Observation(attempt, "open-chat", open.ExitCode,
                     open.Status, open.Reason, open.Detail));
                 if (!IsVerifiedOpen(open))
@@ -101,6 +105,9 @@ internal static class RoadmapFocusPreflight
         static RoadmapUiReply Closed() =>
             new(2, "BLOCKED", "InvalidOperationException",
                 "TARGET_WINDOW_CLOSED: janela original não existe mais.");
+        static RoadmapUiReply PinExpired() =>
+            new(2, "BLOCKED", "InvalidOperationException",
+                "PINNED_TAB_NOT_FOUND: guia original ausente. Outra cópia não será escolhida.");
         static RoadmapUiReply OpenOk() =>
             new(0, "OPENED_VERIFIED", "NONE", "");
         async Task<(int focuses, int opens, List<Observation> events, bool failed)> RunScenario(
@@ -145,6 +152,11 @@ internal static class RoadmapFocusPreflight
 
         var closed = await RunScenario([Closed(), FocusOk()], [OpenOk()]);
         Check(!closed.failed && closed.focuses == 2 && closed.opens == 1);
+        var expired = await RunScenario([PinExpired(), FocusOk()], [OpenOk()]);
+        Check(!expired.failed && expired.focuses == 2 && expired.opens == 1);
+        Check(expired.events[1].Operation=="open-chat");
+        var stillExpired = await RunScenario([PinExpired()], [OpenOk()]);
+        Check(stillExpired.failed && stillExpired.focuses == 4 && stillExpired.opens == 1);
 
         var unsafeOpen = await RunScenario([Closed()], [
             new(0, "OPEN_UNVERIFIED", "NONE", "")]);
