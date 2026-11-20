@@ -70,6 +70,12 @@ internal static class Program
                 Console.WriteLine("ROADMAP_VERIFIER_SELFTEST=PASS");
                 return 0;
             }
+            if (args.Length == 1 && args[0] == "self-test")
+            {
+                ActiveChatCheckpoint.SelfTest();
+                Console.WriteLine("ROADMAP_PIN_SELFTEST=PASS");
+                return 0;
+            }
             if (args.Length > 0 && args[0] == "verify")
             {
                 if (args.Length < 5 || args.Length > 6 ||
@@ -106,6 +112,11 @@ internal static class Program
         var state=Path.Combine(root,"evidencias","roadmap",name);
         Directory.CreateDirectory(state);
         using var lease=new FileStream(Path.Combine(state,"cycle.lock"),FileMode.OpenOrCreate,FileAccess.Write,FileShare.None);
+        // A rota local e apenas o bootstrap. Depois do handoff, a identidade ativa
+        // deve permanecer pinada no disco; reiniciar nunca pode voltar ao chat antigo.
+        var activeFile=Path.Combine(state,"chat.ativo");
+        chat=ActiveChatCheckpoint.LoadOrCreate(activeFile,chat,
+            list.EnumerateArray().Select(c=>c.GetProperty("name").GetString()!).ToArray());
         var runFile=Path.Combine(state,"execucao");
         if (!File.Exists(runFile)) Save(runFile,Guid.NewGuid().ToString("N"));
         var run=File.ReadAllText(runFile);
@@ -114,6 +125,50 @@ internal static class Program
         if (!File.Exists(pin)) Save(pin,digest);
         if (File.ReadAllText(pin)!=digest) throw new IOException("Plano alterado durante a execução.");
         Console.WriteLine($"ROADMAP={name} EXECUCAO={run} CHAT={chat}");
+
+        async Task ReconcileLimitBeforeSend()
+        {
+            // Somente o isMaxLimit confirmado autoriza criar a conversa seguinte.
+            var probe=await Ui("check-max-limit","--chat",chat);
+            if (!probe.GetProperty("isAtMaxLimit").GetBoolean()) return;
+            var oldChat=chat;
+            var suffix=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(oldChat)))[..16];
+            var checkpoint=Path.Combine(state,"handoff-"+suffix+".json");
+            Save(Path.Combine(state,"handoff-"+suffix+".limit.json"),probe.GetRawText());
+            var clock=Stopwatch.StartNew();
+            while (clock.Elapsed < Limit)
+            {
+                // Roadmap-next pertence ao runner C# principal. Operacao idempotente:
+                // o mesmo checkpoint bloqueia reenvio quando o clique e incerto.
+                var result=await Ui("roadmap-next","--chat",oldChat,"--checkpoint",checkpoint);
+                Save(Path.Combine(state,"handoff-"+suffix+".ultima-observacao.json"),result.GetRawText());
+                if (!result.TryGetProperty("ready",out var ready) ||
+                    ready.ValueKind != JsonValueKind.True && ready.ValueKind != JsonValueKind.False)
+                    throw new IOException("HANDOFF_RESPOSTA_INVALIDA: sem avanco.");
+                if (ready.GetBoolean())
+                {
+                    var target=result.GetProperty("name").GetString();
+                    var url=result.GetProperty("url").GetString();
+                    if (string.IsNullOrWhiteSpace(target) || string.IsNullOrWhiteSpace(url) ||
+                        target == oldChat)
+                        throw new IOException("HANDOFF_IDENTIDADE_INVALIDA: sem avanco.");
+                    var after=(await Ui("list-chats")).GetProperty("chats");
+                    if (!after.EnumerateArray().Any(c =>
+                        c.GetProperty("name").GetString()==target &&
+                        c.GetProperty("url").GetString()==url))
+                        throw new IOException("HANDOFF_NAO_CADASTRADO: sem troca.");
+                    // Commit atomico do destino antes de novos prompts.
+                    ActiveChatCheckpoint.CommitSwitch(activeFile,oldChat,target,
+                        after.EnumerateArray().Select(c=>c.GetProperty("name").GetString()!).ToArray());
+                    chat=target;
+                    Console.WriteLine($"HANDOFF=PASS ORIGEM={oldChat} CHAT={chat}");
+                    return;
+                }
+                await Task.Delay(8000);
+            }
+            throw new TimeoutException("HANDOFF_PENDENTE: checkpoint preservado em "+checkpoint+
+                ". Reexecute o mesmo roadmap para reconciliar sem reenvio.");
+        }
         string previous="";
         foreach (var step in plan.Steps)
         {
@@ -143,7 +198,19 @@ internal static class Program
                                 if(clock.Elapsed>Limit) throw new TimeoutException("Chat ocupado.");
                                 await Task.Delay(8000);
                             }
-                            if ((await Ui("check-max-limit","--chat",chat)).GetProperty("isAtMaxLimit").GetBoolean()) throw new IOException("Conversa atingiu o limite antes do envio.");
+                            await ReconcileLimitBeforeSend();
+                            // O handoff pode trocar a guia; comprovar foco e ociosidade
+                            // da nova identidade antes de autorizar o envio.
+                            await Ui("focus-chat","--chat",chat);
+                            var idleClock=Stopwatch.StartNew();
+                            while ((await Ui("is-busy","--chat",chat)).GetProperty("isBusy").GetBoolean())
+                            {
+                                if (idleClock.Elapsed>Limit)
+                                    throw new TimeoutException("CHAT_NOVO_OCUPADO: sem marcar envio; retomar.");
+                                await Task.Delay(8000);
+                            }
+                            if ((await Ui("check-max-limit","--chat",chat)).GetProperty("isAtMaxLimit").GetBoolean())
+                                throw new IOException("HANDOFF_ALVO_TAMBEM_LIMITADO: sem envio.");
                             Save(sent,DateTimeOffset.UtcNow.ToString("O"));
                             var reply=await Ui("send-chat-message","--chat",chat,"--file",promptFile);
                             Save(Path.Combine(folder,"envio.json"),reply.GetRawText());

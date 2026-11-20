@@ -26,6 +26,9 @@ jobs:
       - name: Autoteste do novo verificador C# (PASS, regressao, CS1525)
         if: github.event_name != 'workflow_dispatch'
         run: dotnet run --project roadmap/src/Roadmap.csproj -c Release -- verifier-self-test
+      - name: Autoteste de checkpoint e transicao de chat em C#
+        if: github.event_name != 'workflow_dispatch'
+        run: dotnet run --project roadmap/src/Roadmap.csproj -c Release -- self-test
       - name: Provar compilação, acerto e diagnósticos
         if: github.event_name != 'workflow_dispatch'
         shell: pwsh
