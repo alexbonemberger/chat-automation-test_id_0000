@@ -47,6 +47,21 @@ if ($LASTEXITCODE -ne 0) { throw 'Autoteste do runner privado falhou.' }
 Write-Host "RUNNER_PRIVADO_ISOLADO=PASS SHA=$RunnerRevision"
 Write-Host "RUNNER_DLL=$RunnerDll"
 
+# Regra desta operacao: manter a janela que o usuario deixou aberta.
+# Se o alvo nao for comprovado, PARAR antes do recuperador (que poderia
+# abrir outra janela). Nao abrir Edge, criar guia ou reenviar mensagens.
+$ExistingRaw = @(& dotnet $RunnerDll recover-existing-chat --chat 'TEST_ID_0000')
+if ($LASTEXITCODE -ne 0) {
+    Write-Host 'ESTADO=JANELA_EXISTENTE_NAO_COMPROVADA'
+    Write-Host 'DECISAO=NAO_ABRIR_OUTRA_JANELA'
+    throw ($ExistingRaw -join [Environment]::NewLine)
+}
+$Existing = ($ExistingRaw -join [Environment]::NewLine) | ConvertFrom-Json
+if ($Existing.status -ne 'RECOVERED_EXISTING_TAB') {
+    throw 'Recuperacao nao confirmou RECOVERED_EXISTING_TAB. Nenhuma nova janela sera aberta.'
+}
+Write-Host "JANELA_EXISTENTE_RECUPERADA=PASS CHAT=$($Existing.chat) HWND=$($Existing.match.handle)"
+
 # Instala apenas o recuperador da revisao exata; seu proprio contrato
 # verifica os SHA256 dos arquivos do roadmap, executa o focus-probe real
 # e reusa a conversa existente sem criar outra janela.
