@@ -64,6 +64,13 @@ internal static class Program
     {
         try
         {
+            if (args.Length > 0 && args[0] == "focus-probe")
+            {
+                if (args.Length != 4)
+                    throw new ArgumentException("focus-probe <chat-automation.dll> <chat> <diretorio-evidencias>");
+                await FocusProbe(args[1],args[2],args[3]);
+                return 0;
+            }
             if (args.Length == 1 && args[0] == "focus-self-test")
             {
                 await RoadmapFocusPreflight.SelfTestAsync();
@@ -90,6 +97,42 @@ internal static class Program
             return 0;
         }
         catch (Exception e) { Console.Error.WriteLine(e.Message); return 1; }
+    }
+
+    // Somente foco e observação UIA; nunca envia, marca envio ou consome
+    // uma tentativa do roadmap. Funciona mesmo com envio.txt pendente.
+    static async Task FocusProbe(string dll, string chat, string evidenceDirectory)
+    {
+        dll=Path.GetFullPath(dll);
+        if (!File.Exists(dll)) throw new FileNotFoundException("RUNNER_DLL_MISSING",dll);
+        if (string.IsNullOrWhiteSpace(chat)) throw new ArgumentException("CHAT_REQUIRED");
+        evidenceDirectory=Path.GetFullPath(evidenceDirectory);
+        Directory.CreateDirectory(evidenceDirectory);
+        var probeLog=Path.Combine(evidenceDirectory,"focus-probe.jsonl");
+        var list=await Run("dotnet",[dll,"list-chats"],required:false);
+        var result=RoadmapUiReply.Parse(list.Code,list.Out,list.Error);
+        if (!result.Ok || result.Status!="OK")
+            throw new InvalidOperationException("CHAT_LIST_UNVERIFIED: "+result.Detail);
+        using(var parsed=JsonDocument.Parse(list.Out))
+        {
+            var matches=parsed.RootElement.GetProperty("chats").EnumerateArray()
+                .Count(x=>x.GetProperty("name").GetString()==chat);
+            if(matches!=1) throw new InvalidOperationException("CHAT_NAME_NOT_UNIQUE_OR_MISSING");
+        }
+        await RoadmapFocusPreflight.EnsureAsync(chat,
+            async command=>
+            {
+                var response=await Run("dotnet",new[]{dll}.Concat(command),required:false);
+                return RoadmapUiReply.Parse(response.Code,response.Out,response.Error);
+            },
+            duration=>Task.Delay(duration),
+            observation=>
+            {
+                var record=JsonSerializer.Serialize(new {
+                    timestampUtc=DateTimeOffset.UtcNow,chat,observation });
+                File.AppendAllText(probeLog,record+Environment.NewLine);
+            });
+        Console.WriteLine("FOCUS_PROBE=PASS CHAT="+chat+" LOG="+probeLog);
     }
 
     static async Task Cycle(string[] args)
