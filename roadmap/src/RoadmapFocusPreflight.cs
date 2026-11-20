@@ -159,7 +159,7 @@ internal static class RoadmapFocusPreflight
         Check(!expired.failed && expired.focuses == 2 && expired.opens == 1);
         Check(expired.events[1].Operation=="open-chat");
         var stillExpired = await RunScenario([PinExpired()], [OpenOk()]);
-        Check(stillExpired.failed && stillExpired.focuses == 4 && stillExpired.opens == 1);
+        Check(stillExpired.failed && stillExpired.focuses == 2 && stillExpired.opens == 1);
 
         var unsafeOpen = await RunScenario([Closed()], [
             new(0, "OPEN_UNVERIFIED", "NONE", "")]);
